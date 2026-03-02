@@ -5,7 +5,9 @@ import helmet from 'helmet';
 
 import { authMiddleware } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
+import { invoicesRouter } from './routes/invoices';
 import { leasesRouter } from './routes/leases';
+import { paymentsRouter } from './routes/payments';
 import { propertiesRouter } from './routes/properties';
 import { tenantsRouter } from './routes/tenants';
 
@@ -22,6 +24,8 @@ app.get('/health', (_req, res) => {
 app.use('/api', authMiddleware, propertiesRouter);
 app.use('/api', authMiddleware, tenantsRouter);
 app.use('/api', authMiddleware, leasesRouter);
+app.use('/api', authMiddleware, invoicesRouter);
+app.use('/api', authMiddleware, paymentsRouter);
 
 app.use(errorHandler);
 
