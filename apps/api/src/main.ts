@@ -11,6 +11,7 @@ import { maintenanceRouter } from './routes/maintenance';
 import { paymentsRouter } from './routes/payments';
 import { propertiesRouter } from './routes/properties';
 import { tenantsRouter } from './routes/tenants';
+import { uploadsRouter } from './routes/uploads';
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api', authMiddleware, leasesRouter);
 app.use('/api', authMiddleware, invoicesRouter);
 app.use('/api', authMiddleware, paymentsRouter);
 app.use('/api', authMiddleware, maintenanceRouter);
+app.use('/api', authMiddleware, uploadsRouter);
 
 app.use(errorHandler);
 
