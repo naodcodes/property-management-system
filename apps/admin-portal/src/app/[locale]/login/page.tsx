@@ -1,12 +1,12 @@
-'use client'; 
+'use client';
 
 import { useState } from 'react';
 import { createClient } from '../../../lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { Building2, Lock, Mail, Loader2, Home } from 'lucide-react'; // Standard icons
 
 export default function LoginPage() {
-
-  const supabase = createClient(); 
+  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,10 +29,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Role Check: Ensure only Admins get in
     const role = data.user?.app_metadata?.role || data.user?.user_metadata?.role;
     
-    if (role !== 'ADMIN') { // Match this to your UserRole.ADMIN string
+    if (role !== 'ADMIN') {
       await supabase.auth.signOut();
       setError("Access denied: Admin privileges required.");
       setLoading(false);
@@ -43,39 +42,106 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
-          Admin Portal
-        </h2>
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <input
-              type="email"
-              required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Left Side: Branding/Visual */}
+      <div className="hidden lg:flex w-1/2 bg-slate-900 items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com')]" />
+        <div className="relative z-10 max-w-lg">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-indigo-600 p-3 rounded-xl shadow-lg shadow-indigo-500/20">
+              <Building2 className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">PropManage Pro</h1>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
+          <p className="text-slate-400 text-lg leading-relaxed">
+            Manage your properties, units, and lease documents with ease. The ultimate dashboard for modern property managers.
+          </p>
+          <div className="mt-12 grid grid-cols-2 gap-4">
+             <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <Home className="text-indigo-400 mb-2 w-5 h-5" />
+                <div className="text-white font-semibold">Unit Tracking</div>
+             </div>
+             <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <Lock className="text-indigo-400 mb-2 w-5 h-5" />
+                <div className="text-white font-semibold">Secure Leases</div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side: Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+        <div className="w-full max-w-md">
+          <div className="mb-10 lg:hidden flex items-center gap-2">
+             <Building2 className="w-6 h-6 text-indigo-600" />
+             <span className="text-xl font-bold text-slate-900">PropManage</span>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-slate-900">Welcome back</h2>
+            <p className="text-slate-500 mt-2 text-sm">Please enter your admin credentials to continue.</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            {error && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
+                <span className="font-bold">!</span> {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700" htmlFor="email">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="admin@property.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700" htmlFor="password">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                'Sign In to Dashboard'
+              )}
+            </button>
+          </form>
+
+          <footer className="mt-12 text-center text-slate-400 text-xs">
+            &copy; {new Date().getFullYear()} PropManage Pro Admin System. All rights reserved.
+          </footer>
+        </div>
       </div>
     </div>
   );
