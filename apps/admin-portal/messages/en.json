@@ -1,6 +1,12 @@
 {
-  "Home": {
-    "title": "Admin Portal",
-    "description": "Property Management System - Admin"
+  "Login": {
+    "title": "PropManage Pro",
+    "welcome": "Welcome back",
+    "subtitle": "Please enter your admin credentials to continue.",
+    "emailLabel": "Email Address",
+    "passwordLabel": "Password",
+    "submit": "Sign In to Dashboard",
+    "loading": "Authenticating...",
+    "accessDenied": "Access denied: Admin privileges required."
   }
 }
