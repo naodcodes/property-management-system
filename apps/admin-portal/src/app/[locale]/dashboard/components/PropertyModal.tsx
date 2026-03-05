@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
-export function PropertyModal({ onClose, onSubmit, submitting }: any) {
+// 1. Define the interface clearly
+interface PropertyModalProps {
+  onClose: () => void;
+  onSubmit: (payload: any) => void;
+  submitting: boolean;
+}
+
+// 2. Apply the interface to the component
+export function PropertyModal({ onClose, onSubmit, submitting }: PropertyModalProps) {
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -16,7 +24,7 @@ export function PropertyModal({ onClose, onSubmit, submitting }: any) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Clean payload for the API
+    // Clean Payload: Remove keys that are empty strings to satisfy Zod min(1)
     const cleanedPayload = Object.fromEntries(
       Object.entries(form).filter(([_, v]) => v.trim() !== '')
     );
@@ -27,8 +35,14 @@ export function PropertyModal({ onClose, onSubmit, submitting }: any) {
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden">
         <div className="p-8 flex justify-between items-center border-b bg-slate-50/50">
-          <h2 className="text-2xl font-black text-slate-900 text-indigo-600">New Asset</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+          <h2 className="text-2xl font-black text-indigo-600">New Asset</h2>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
         
         <form onSubmit={handleSubmit} className="p-8 space-y-4">
@@ -54,7 +68,11 @@ export function PropertyModal({ onClose, onSubmit, submitting }: any) {
             <input className="px-5 py-3 bg-slate-50 border rounded-xl" placeholder="Postal Code" value={form.postal_code} onChange={e => setForm({...form, postal_code: e.target.value})} required />
           </div>
           
-          <button type="submit" disabled={submitting} className="w-full bg-indigo-600 text-white font-black py-5 rounded-[20px] shadow-lg disabled:opacity-50">
+          <button 
+            type="submit" 
+            disabled={submitting} 
+            className="w-full bg-indigo-600 text-white font-black py-5 rounded-[20px] shadow-lg shadow-indigo-200 disabled:opacity-50 transition-all active:scale-[0.98]"
+          >
             {submitting ? 'Creating...' : 'Create Property'}
           </button>
         </form>
