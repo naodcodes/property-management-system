@@ -1,6 +1,11 @@
 {
-  "Home": {
-    "title": "የተከራይ ደረጃ",
-    "description": "የንብረት አስተዳደር ስርዓት - ተከራይ"
+  "Login": {
+    "title": "የነዋሪዎች ፖርታል",
+    "welcome": "እንኳን ደህና መጡ",
+    "subtitle": "እባክዎን ወደ መለያዎ ይግቡ",
+    "emailLabel": "ኢሜይል",
+    "passwordLabel": "የይለፍ ቃል",
+    "submit": "ይግቡ",
+    "accessDenied": "መግባት አልተፈቀደም፦ ይህ መግቢያ ለነዋሪዎች ብቻ ነው።"
   }
 }

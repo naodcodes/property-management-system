@@ -1,6 +1,11 @@
 {
-  "Home": {
-    "title": "Tenant Portal",
-    "description": "Property Management System - Tenant"
+  "Login": {
+    "title": "Resident Portal",
+    "welcome": "Welcome Home",
+    "subtitle": "Please sign in to your account",
+    "emailLabel": "Email Address",
+    "passwordLabel": "Password",
+    "submit": "Sign In",
+    "accessDenied": "Access Denied: This portal is for residents only."
   }
 }

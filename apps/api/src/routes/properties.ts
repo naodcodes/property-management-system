@@ -9,6 +9,7 @@ import {
   getPropertyById,
   updateProperty,
   updateUnit,
+  onboardTenant
 } from '../services/propertyService';
 
 const router = Router();
@@ -42,6 +43,15 @@ const propertyBodySchema = z.object({
   state: z.string().trim().min(1),
   postal_code: z.string().trim().min(1),
   country: z.string().trim().min(1),
+});
+
+const onboardTenantSchema = z.object({
+  tenant_name: z.string().trim().min(1, 'Tenant name is required'),
+  tenant_email: z.string().trim().email('Invalid email address'),
+  lease_start: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Invalid lease start date',
+  }),
+  monthly_rent: z.number().positive('Rent must be greater than 0'),
 });
 
 const propertyPatchSchema = propertyBodySchema.partial().refine(
@@ -103,6 +113,32 @@ router.post(
 
       const property = await createProperty(body, userId);
       res.status(201).json({ data: property });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/units/:id/onboard',
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // 1. Validate the ID parameter
+      const { id } = parseOrThrow(idParamSchema, req.params);
+      
+      // 2. Validate the request body
+      const body = parseOrThrow(onboardTenantSchema, req.body);
+      
+      // 3. Call the new service function you just created
+      // We pass the unit ID and the validated onboarding data
+      const result = await onboardTenant(id, body);
+      
+      // 4. Return success
+      res.status(200).json({ 
+        data: result, 
+        message: 'Tenant onboarding initiated and invitation sent.' 
+      });
     } catch (error) {
       next(error);
     }
