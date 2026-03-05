@@ -18,12 +18,15 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export default async function middleware(request: NextRequest) {
-  const response = intlMiddleware(request);
   const { pathname } = request.nextUrl;
 
-  if (isPublicPath(pathname)) {
-    return response;
+  if (pathname === '/') {
+    return NextResponse.next();
   }
+
+  const response = intlMiddleware(request);
+
+  if (isPublicPath(pathname)) return response;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
