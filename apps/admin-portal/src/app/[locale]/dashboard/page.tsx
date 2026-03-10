@@ -1,20 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, AlertCircle, Home, FileWarning, ArrowRight, Building2, ChevronRight } from 'lucide-react';
+import { Loader2, AlertCircle, Home, FileWarning, ArrowRight, Building2, User, DollarSign, MapPin } from 'lucide-react';
 
 // Hooks & Components
 import { useApi } from './hooks/useApi';
 import { Sidebar } from './components/Sidebar';
-import { PropertyCard } from './components/PropertCard';
 
 export default function AdminDashboard() {
   const { apiRequest } = useApi();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // New State: Track which status filter is active
-  const [activeFilter, setActiveFilter] = useState<'LATE' | 'VACANT' | 'INACTIVE_LEASE' | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -29,21 +25,30 @@ export default function AdminDashboard() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // --- STATS CALCULATION ---
-  const stats = useMemo(() => {
-    let vacantUnits = 0;
-    let latePayments = 0;
-    let inactiveLeases = 0;
+  // --- DATA AGGREGATION ---
+  // We extract specific units into lists for the three main sections
+  const { lateUnits, vacantUnits, inactiveLeaseUnits } = useMemo(() => {
+    const late: any[] = [];
+    const vacant: any[] = [];
+    const inactive: any[] = [];
 
     properties.forEach((p: any) => {
       p.units?.forEach((u: any) => {
-        if (!u.is_occupied) vacantUnits++;
-        if (u.payment_status === 'late') latePayments++;
-        if (u.lease_status !== 'active' && u.is_occupied) inactiveLeases++;
+        const unitWithProp = { ...u, propertyName: p.name };
+        
+        if (u.payment_status === 'late') {
+          late.push(unitWithProp);
+        }
+        if (!u.is_occupied) {
+          vacant.push(unitWithProp);
+        }
+        if (u.is_occupied && u.lease_status !== 'active') {
+          inactive.push(unitWithProp);
+        }
       });
     });
 
-    return { vacantUnits, latePayments, inactiveLeases };
+    return { lateUnits: late, vacantUnits: vacant, inactiveLeaseUnits: inactive };
   }, [properties]);
 
   if (loading) return (
@@ -56,140 +61,154 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-slate-50 flex font-sans">
       <Sidebar />
 
-      <main className="flex-1 lg:ml-64 p-8">
-        <header className="mb-10">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Executive Overview</h1>
-          <p className="text-slate-500 text-sm font-medium">Click a status card to filter units</p>
+      <main className="flex-1 lg:ml-64 p-8 space-y-12">
+        <header>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Property Manager</h1>
+          <p className="text-slate-500 font-medium">Immediate actions and status updates</p>
         </header>
 
-        {/* --- SECTION 1, 2, 3: STATUS CARDS --- */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {/* LATE PAYMENTS - MADE OBVIOUS */}
-          <button 
-            onClick={() => setActiveFilter(activeFilter === 'LATE' ? null : 'LATE')}
-            className={`flex flex-col p-6 rounded-[32px] border-2 transition-all text-left ${
-              activeFilter === 'LATE' ? 'border-rose-500 bg-rose-50 shadow-lg' : 'border-white bg-white shadow-sm hover:border-rose-200'
-            }`}
-          >
-            <div className="bg-rose-500 text-white p-3 rounded-2xl w-fit mb-4">
-              <AlertCircle size={28} />
-            </div>
-            <p className="text-rose-600 font-black uppercase text-xs tracking-widest">Late Payments</p>
-            <h2 className="text-4xl font-black text-slate-900">{stats.latePayments}</h2>
-            <p className="text-slate-400 text-xs font-bold mt-2">Urgent Action Required</p>
-          </button>
-
-          {/* NOT OCCUPIED */}
-          <button 
-            onClick={() => setActiveFilter(activeFilter === 'VACANT' ? null : 'VACANT')}
-            className={`flex flex-col p-6 rounded-[32px] border-2 transition-all text-left ${
-              activeFilter === 'VACANT' ? 'border-indigo-500 bg-indigo-50 shadow-lg' : 'border-white bg-white shadow-sm hover:border-indigo-200'
-            }`}
-          >
-            <div className="bg-indigo-600 text-white p-3 rounded-2xl w-fit mb-4">
-              <Home size={28} />
-            </div>
-            <p className="text-indigo-600 font-black uppercase text-xs tracking-widest">Not Occupied</p>
-            <h2 className="text-4xl font-black text-slate-900">{stats.vacantUnits}</h2>
-            <p className="text-slate-400 text-xs font-bold mt-2">Inventory Available</p>
-          </button>
-
-          {/* LEASE INACTIVE */}
-          <button 
-            onClick={() => setActiveFilter(activeFilter === 'INACTIVE_LEASE' ? null : 'INACTIVE_LEASE')}
-            className={`flex flex-col p-6 rounded-[32px] border-2 transition-all text-left ${
-              activeFilter === 'INACTIVE_LEASE' ? 'border-amber-500 bg-amber-50 shadow-lg' : 'border-white bg-white shadow-sm hover:border-amber-200'
-            }`}
-          >
-            <div className="bg-amber-500 text-white p-3 rounded-2xl w-fit mb-4">
-              <FileWarning size={28} />
-            </div>
-            <p className="text-amber-600 font-black uppercase text-xs tracking-widest">Lease Inactive</p>
-            <h2 className="text-4xl font-black text-slate-900">{stats.inactiveLeases}</h2>
-            <p className="text-slate-400 text-xs font-bold mt-2">Expired or Pending</p>
-          </button>
+        {/* --- SECTION 1: LATE PAYMENTS (TOP PRIORITY) --- */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-rose-500 text-white p-2 rounded-lg"><AlertCircle size={20}/></div>
+            <h2 className="text-2xl font-black text-slate-900">Late Payments</h2>
+            <span className="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-xs font-black">
+              {lateUnits.length} URGENT
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {lateUnits.length > 0 ? lateUnits.map((u) => (
+              <ActionCard key={u.id} unit={u} type="LATE" />
+            )) : (
+              <p className="text-slate-400 italic text-sm">No late payments recorded.</p>
+            )}
+          </div>
         </section>
 
-        {/* --- MANAGE PROPERTIES HEADER --- */}
-        <div className="flex items-center justify-between mb-8 border-t border-slate-200 pt-10">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Portfolio Summary</h2>
-            <p className="text-slate-500 text-sm font-medium">Total Properties: {properties.length}</p>
+        {/* --- SECTION 2: NOT OCCUPIED UNITS --- */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-indigo-600 text-white p-2 rounded-lg"><Home size={20}/></div>
+            <h2 className="text-2xl font-black text-slate-900">Not Occupied</h2>
+            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-xs font-black">
+              {vacantUnits.length} AVAILABLE
+            </span>
           </div>
-          <button 
-            onClick={() => window.location.href = '/properties'}
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-black transition-all group"
-          >
-            Manage All Properties <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
 
-        {/* --- PROPERTY LIST WITH FILTER LOGIC --- */}
-        <div className="grid grid-cols-1 gap-8">
-          {properties.map((p: any) => {
-            // Filter units based on selection
-            const filteredUnits = p.units?.filter((u: any) => {
-              if (activeFilter === 'LATE') return u.payment_status === 'late';
-              if (activeFilter === 'VACANT') return !u.is_occupied;
-              if (activeFilter === 'INACTIVE_LEASE') return u.lease_status !== 'active' && u.is_occupied;
-              return true; // Default: show all
-            });
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {vacantUnits.length > 0 ? vacantUnits.map((u) => (
+              <ActionCard key={u.id} unit={u} type="VACANT" />
+            )) : (
+              <p className="text-slate-400 italic text-sm">All units are currently occupied.</p>
+            )}
+          </div>
+        </section>
 
-            if (activeFilter && filteredUnits.length === 0) return null;
+        {/* --- SECTION 3: INACTIVE LEASES --- */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-amber-500 text-white p-2 rounded-lg"><FileWarning size={20}/></div>
+            <h2 className="text-2xl font-black text-slate-900">Inactive Leases</h2>
+            <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-xs font-black">
+              {inactiveLeaseUnits.length} ATTENTION
+            </span>
+          </div>
 
-            return (
-              <div key={p.id} className="bg-white rounded-[40px] p-8 border border-slate-200 shadow-sm relative overflow-hidden">
-                {/* Property Metadata Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                  <div className="flex items-center gap-5">
-                    <div className="bg-slate-100 p-4 rounded-3xl text-slate-900">
-                      <Building2 size={32} />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-black text-slate-900">{p.name}</h3>
-                      <div className="flex gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                        <span>{p.units?.length} Total Units</span>
-                        <span>•</span>
-                        <span>{p.city}</span>
-                      </div>
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {inactiveLeaseUnits.length > 0 ? inactiveLeaseUnits.map((u) => (
+              <ActionCard key={u.id} unit={u} type="INACTIVE" />
+            )) : (
+              <p className="text-slate-400 italic text-sm">All leases are active and valid.</p>
+            )}
+          </div>
+        </section>
+
+        <hr className="border-slate-200" />
+
+        {/* --- SECTION 4: MANAGE PROPERTIES OVERVIEW --- */}
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900">Manage Properties</h2>
+              <p className="text-slate-500 text-sm font-medium">Quick metadata for your assets</p>
+            </div>
+            <button 
+              onClick={() => window.location.href = '/properties'}
+              className="flex items-center gap-2 text-indigo-600 font-black text-sm uppercase tracking-widest hover:bg-indigo-50 px-4 py-2 rounded-xl transition-all"
+            >
+              Go to /properties <ArrowRight size={18} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {properties.map((p: any) => (
+              <div key={p.id} className="bg-white border border-slate-200 rounded-[32px] p-6 flex items-center justify-between hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-5">
+                  <div className="bg-slate-100 p-4 rounded-2xl text-slate-900">
+                    <Building2 size={24} />
                   </div>
-                  
-                  <div className="flex gap-8 px-8 py-4 bg-slate-50 rounded-3xl">
-                    <div className="text-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase">Revenue</p>
-                      <p className="text-lg font-black text-slate-900">${p.total_revenue || '0'}</p>
-                    </div>
-                    <div className="text-center border-l border-slate-200 pl-8">
-                      <p className="text-[10px] font-black text-slate-400 uppercase">Occupancy</p>
-                      <p className="text-lg font-black text-indigo-600">{Math.round((p.units?.filter((u:any)=>u.is_occupied).length / p.units?.length) * 100)}%</p>
+                  <div>
+                    <h3 className="font-black text-lg text-slate-900">{p.name}</h3>
+                    <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                      <MapPin size={10} /> {p.city}
                     </div>
                   </div>
                 </div>
 
-                {/* Units List */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredUnits.map((u: any) => (
-                    <div key={u.id} className="group p-5 rounded-[24px] bg-slate-50 border border-slate-100 flex items-center justify-between hover:bg-white hover:border-indigo-200 transition-all cursor-pointer">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-1.5 h-10 rounded-full ${u.is_occupied ? 'bg-indigo-500' : 'bg-slate-300'}`} />
-                        <div>
-                          <p className="font-black text-slate-800 text-lg uppercase">{u.unit_code}</p>
-                          <p className="text-xs font-bold text-slate-400">{u.is_occupied ? u.tenant_name : 'Empty'}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-black text-indigo-600">${u.monthly_rent}</p>
-                        <ChevronRight size={16} className="ml-auto text-slate-300 group-hover:text-indigo-600 transition-colors" />
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex gap-6 text-right">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Units</p>
+                    <p className="font-black text-slate-900">{p.units?.length || 0}</p>
+                  </div>
+                  <div className="border-l border-slate-100 pl-6">
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Occupancy</p>
+                    <p className="font-black text-indigo-600">
+                      {p.units?.length ? Math.round((p.units.filter((u:any)=>u.is_occupied).length / p.units.length) * 100) : 0}%
+                    </p>
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </section>
       </main>
+    </div>
+  );
+}
+
+// Internal reusable card for the status lists
+function ActionCard({ unit, type }: { unit: any, type: 'LATE' | 'VACANT' | 'INACTIVE' }) {
+  const themes = {
+    LATE: { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-700', icon: <DollarSign size={14}/> },
+    VACANT: { bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-700', icon: <Home size={14}/> },
+    INACTIVE: { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700', icon: <User size={14}/> },
+  };
+
+  const theme = themes[type];
+
+  return (
+    <div className={`p-5 rounded-3xl border-2 ${theme.border} ${theme.bg} flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform cursor-pointer`}>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+            {unit.propertyName}
+          </p>
+          <h4 className="text-xl font-black text-slate-900">{unit.unit_code}</h4>
+        </div>
+        <div className={`${theme.text}`}>
+          {theme.icon}
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between mt-4 border-t border-black/5 pt-3">
+        <span className="text-xs font-bold text-slate-600 truncate max-w-[120px]">
+          {unit.is_occupied ? unit.tenant_name : 'No Tenant'}
+        </span>
+        <span className={`text-xs font-black ${theme.text}`}>
+          ${unit.monthly_rent}
+        </span>
+      </div>
     </div>
   );
 }
