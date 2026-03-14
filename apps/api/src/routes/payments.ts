@@ -28,6 +28,28 @@ function forbiddenError(): HttpError {
   return error;
 }
 
+async function getTenantByUserId(userId: string) {
+  const { data: tenant, error } = await supabaseAdmin
+    .from('tenants')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    const dbError = new Error(error.message) as HttpError;
+    dbError.statusCode = 500;
+    throw dbError;
+  }
+
+  if (!tenant) {
+    const notFound = new Error('Tenant not found') as HttpError;
+    notFound.statusCode = 404;
+    throw notFound;
+  }
+
+  return tenant;
+}
+
 async function assertTenantSelfAccess(tenantId: string, userId: string): Promise<void> {
   const { data: tenant, error } = await supabaseAdmin
     .from('tenants')
@@ -70,6 +92,26 @@ router.post(
       const body = parseOrThrow(recordPaymentSchema, req.body);
       const payment = await recordPayment(body.invoice_id, body.amount, body.method);
       res.status(201).json({ data: payment });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get(
+  '/payments/mine',
+  requireRole(UserRole.TENANT),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'Unauthorized', status: 401 });
+        return;
+      }
+
+      const tenant = await getTenantByUserId(userId);
+      const payments = await getPaymentHistory(tenant.id);
+      res.json({ data: payments });
     } catch (error) {
       next(error);
     }

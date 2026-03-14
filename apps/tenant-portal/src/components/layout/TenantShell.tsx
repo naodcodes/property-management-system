@@ -6,10 +6,8 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   FileText,
-  Receipt,
   CreditCard,
   Wrench,
-  FolderOpen,
   User,
   Menu,
   X,
@@ -61,10 +59,8 @@ export default function TenantShell({ children }: { children: React.ReactNode })
   const navItems: NavItem[] = [
     { href: `${localePrefix}/dashboard`, label: 'Dashboard', icon: Home },
     { href: `${localePrefix}/lease`, label: 'My Lease', icon: FileText },
-    { href: `${localePrefix}/invoices`, label: 'Invoices', icon: Receipt },
     { href: `${localePrefix}/payments`, label: 'Payments', icon: CreditCard },
     { href: `${localePrefix}/maintenance`, label: 'Maintenance', icon: Wrench },
-    { href: `${localePrefix}/documents`, label: 'Documents', icon: FolderOpen },
     { href: `${localePrefix}/profile`, label: 'Profile', icon: User },
   ];
 

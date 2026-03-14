@@ -111,8 +111,8 @@ export async function getActiveLease(tenantId: string) {
   }
 
   const unit = Array.isArray(lease.units) ? lease.units[0] : lease.units;
-  const property = Array.isArray(unit?.properties) ? unit?.properties[0] : unit?.properties;
-
+  const property = Array.isArray(lease.properties) ? lease.properties[0] : lease.properties;
+  
   return {
     ...lease,
     unit_code: unit?.unit_code ?? null,

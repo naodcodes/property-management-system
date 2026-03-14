@@ -341,8 +341,8 @@ export default function TenantDashboardPage() {
                         </p>
                       </>
                     )}
-                    <Link href="/documents" className="text-xs font-medium text-amber-700">
-                      View documents →
+                    <Link href="/lease" className="text-xs font-medium text-amber-700">
+                      View in My Lease →
                     </Link>
                   </div>
                 )}

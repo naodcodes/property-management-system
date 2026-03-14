@@ -144,6 +144,37 @@ router.get('/invoices', async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
+router.get(
+  '/invoices/mine',
+  requireRole(UserRole.TENANT),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'Unauthorized', status: 401 });
+        return;
+      }
+
+      const tenant = await getTenantByUserId(userId);
+      const { data, error } = await supabaseAdmin
+        .from('invoices')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .order('due_date', { ascending: false });
+
+      if (error) {
+        const dbError = new Error(error.message) as HttpError;
+        dbError.statusCode = 500;
+        throw dbError;
+      }
+
+      res.json({ data: data ?? [] });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.get('/invoices/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = parseOrThrow(idParamSchema, req.params);
