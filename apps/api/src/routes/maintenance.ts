@@ -9,6 +9,7 @@ import {
   getAllTickets,
   getTenantTickets,
   getTicketWithComments,
+  getTicketsByAdmin,
   updateTicketStatus,
 } from '../services/maintenanceService';
 
@@ -227,5 +228,23 @@ router.get('/maintenance/:id', async (req: Request, res: Response, next: NextFun
     next(error);
   }
 });
+
+router.get(
+  '/maintenance',
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user!; // requireRole ensures user exists
+      const filters = parseOrThrow(ticketFilterSchema, req.query);
+      
+      // Call the new admin-specific filter
+      const tickets = await getTicketsByAdmin(user.id, filters);
+      
+      res.json({ data: tickets });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 export { router as maintenanceRouter };

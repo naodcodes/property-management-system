@@ -8,6 +8,7 @@ import {
   getInvoicesByTenant,
   getOverdueInvoices,
   updateInvoiceStatus,
+  getInvoicesByAdmin
 } from '../services/invoiceService';
 import { supabaseAdmin } from '../lib/supabase';
 
@@ -121,12 +122,14 @@ router.get('/invoices', async (req: Request, res: Response, next: NextFunction) 
   try {
     const user = req.user;
     if (!user?.id || !user.role) {
+      console.log("BACKEND: No user found in request");
       res.status(401).json({ error: 'Unauthorized', status: 401 });
       return;
     }
-
+ 
     if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
-      const invoices = await getOverdueInvoices();
+      // Use the service we spent time fixing!
+      const invoices = await getInvoicesByAdmin(user.id);
       res.json({ data: invoices });
       return;
     }
@@ -140,6 +143,7 @@ router.get('/invoices', async (req: Request, res: Response, next: NextFunction) 
 
     throw forbiddenError();
   } catch (error) {
+    console.error("BACKEND ERROR:", error);
     next(error);
   }
 });
@@ -194,5 +198,6 @@ router.patch(
     }
   }
 );
+
 
 export { router as invoicesRouter };

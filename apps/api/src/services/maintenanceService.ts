@@ -120,6 +120,28 @@ export async function createTicket(data: CreateTicketPayload, tenantId: string) 
   return createdTicket;
 }
 
+export async function getTicketsByAdmin(adminId: string, filters: TicketFilters) {
+  let query = supabaseAdmin
+    .from('maintenance_tickets')
+    .select(`
+      *,
+      property:properties!inner (
+        created_by
+      )
+    `)
+    .eq('property.created_by', adminId) // Only tickets for this Admin's properties
+    .order('created_at', { ascending: false });
+
+  if (filters.status) query = query.eq('status', filters.status);
+  if (filters.priority) query = query.eq('priority', filters.priority);
+  if (filters.property_id) query = query.eq('property_id', filters.property_id);
+
+  const { data, error } = await query;
+  if (error) throw createHttpError(500, error.message);
+
+  return data ?? [];
+}
+
 export async function getAllTickets(filters: TicketFilters) {
   let query = supabaseAdmin
     .from('maintenance_tickets')
