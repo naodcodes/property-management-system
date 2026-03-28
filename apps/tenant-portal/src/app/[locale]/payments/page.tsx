@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CreditCard } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import apiClient from '@/lib/api';
 import { createClient } from '@/lib/supabase/client';
 
@@ -35,22 +36,22 @@ const formatCurrency = (value?: number | null) => {
   return `ETB ${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 };
 
-const formatDateOnly = (value?: string | null) => {
+const formatDateOnly = (value?: string | null, locale: string = 'en') => {
   if (!value) return '—';
   const [y, m, d] = value.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale === 'am' ? 'en-GB' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   }).format(date);
 };
 
-const formatTimestamp = (value?: string | null) => {
+const formatTimestamp = (value?: string | null, locale: string = 'en') => {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale === 'am' ? 'en-GB' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -59,6 +60,9 @@ const formatTimestamp = (value?: string | null) => {
 
 export default function PaymentsPage() {
   const supabase = useMemo(() => createClient(), []);
+  const locale = useLocale();
+  const t = useTranslations('Payments');
+  
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,17 +95,13 @@ export default function PaymentsPage() {
           setPayments(data ?? []);
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
-    void Promise.all([supabase.auth.getSession(), loadData()]);
-    return () => {
-      isMounted = false;
-    };
-  }, [supabase]);
+    void loadData();
+    return () => { isMounted = false; };
+  }, []);
 
   const outstandingInvoices = invoices.filter(
     (invoice) => invoice.status === 'UNPAID' || invoice.status === 'OVERDUE'
@@ -111,33 +111,39 @@ export default function PaymentsPage() {
     0
   );
 
+  // Helper to translate statuses dynamically
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'PAID': return t('paid');
+      case 'UNPAID': return t('unpaid');
+      case 'OVERDUE': return t('overdue');
+      case 'CANCELLED': return t('cancelled');
+      case 'COMPLETED': return t('completed');
+      default: return status;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
           <CreditCard size={16} className="text-amber-700" />
           <p className="text-amber-700 font-black text-xs uppercase tracking-widest">
-            Payments
+            {t('pageLabel')}
           </p>
         </div>
         <h1 className="text-4xl font-black tracking-tight text-stone-900">
-          Billing & Payments
+          {t('pageTitle')}
         </h1>
         <p className="text-stone-400 font-medium text-sm mt-1">
-          Your invoices and payment history
+          {t('pageSubtitle')}
         </p>
       </div>
+
       {loading ? (
-        <div className="space-y-6">
-          <div className="rounded-[32px] bg-white p-8 shadow-sm">
-            <div className="h-20 rounded-xl bg-stone-100 animate-pulse" />
-          </div>
-          <div className="rounded-[32px] bg-white p-8 shadow-sm">
-            <div className="h-24 rounded-xl bg-stone-100 animate-pulse" />
-          </div>
-          <div className="rounded-[32px] bg-white p-8 shadow-sm">
-            <div className="h-24 rounded-xl bg-stone-100 animate-pulse" />
-          </div>
+        <div className="space-y-6 animate-pulse">
+          <div className="rounded-[32px] bg-white p-8 h-32 shadow-sm" />
+          <div className="rounded-[32px] bg-white p-8 h-48 shadow-sm" />
         </div>
       ) : (
         <>
@@ -147,7 +153,7 @@ export default function PaymentsPage() {
             }`}
           >
             {invoiceError ? (
-              <p className="text-sm text-stone-400">Unable to load invoices</p>
+              <p className="text-sm text-stone-400">{t('unableToLoadInvoices')}</p>
             ) : outstandingInvoices.length > 0 ? (
               <div className="space-y-4">
                 <div>
@@ -155,7 +161,7 @@ export default function PaymentsPage() {
                     {formatCurrency(outstandingTotal)}
                   </p>
                   <p className="text-stone-400 font-black text-[10px] uppercase tracking-widest mt-1">
-                    outstanding
+                    {t('outstanding')}
                   </p>
                 </div>
                 <div className="space-y-3">
@@ -169,7 +175,7 @@ export default function PaymentsPage() {
                           {invoice.invoice_number}
                         </p>
                         <p className="text-xs text-stone-400">
-                          Due {formatDateOnly(invoice.due_date)}
+                          {t('due')} {formatDateOnly(invoice.due_date, locale)}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -183,14 +189,14 @@ export default function PaymentsPage() {
                               : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {invoice.status}
+                          {getStatusText(invoice.status)}
                         </span>
                       </div>
                     </div>
                   ))}
                 </div>
                 <p className="text-xs font-black uppercase tracking-widest text-stone-400 mt-4">
-                  Contact your property manager to arrange payment
+                  {t('contactManager')}
                 </p>
               </div>
             ) : (
@@ -198,9 +204,9 @@ export default function PaymentsPage() {
                 <span className="h-2 w-2 rounded-full bg-amber-500" />
                 <div>
                   <p className="text-base font-black text-stone-900">
-                    All payments up to date
+                    {t('allUpToDate')}
                   </p>
-                  <p className="text-xs font-medium text-stone-400">No outstanding balance</p>
+                  <p className="text-xs font-medium text-stone-400">{t('noOutstandingBalance')}</p>
                 </div>
               </div>
             )}
@@ -208,26 +214,23 @@ export default function PaymentsPage() {
 
           <section className="rounded-[32px] bg-white p-8 shadow-sm border-2 border-transparent hover:border-stone-900 transition-all duration-300">
             <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
-              Payment History
+              {t('paymentHistoryLabel')}
             </p>
-            <h2 className="text-2xl font-black text-stone-900 mb-6">Payment History</h2>
+            <h2 className="text-2xl font-black text-stone-900 mb-6">{t('paymentHistory')}</h2>
             {paymentError ? (
-              <p className="mt-4 text-sm text-stone-400">Unable to load payments</p>
+              <p className="mt-4 text-sm text-stone-400">{t('unableToLoadPayments')}</p>
             ) : payments.length === 0 ? (
-              <p className="mt-2 text-sm font-medium text-stone-400">No payment records yet</p>
+              <p className="mt-2 text-sm font-medium text-stone-400">{t('noPaymentRecords')}</p>
             ) : (
               <div className="mt-4 divide-y divide-stone-100">
                 {payments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between py-3">
                     <div>
                       <p className="text-sm font-black text-stone-900">
-                        {formatTimestamp(payment.payment_date)}
+                        {formatTimestamp(payment.payment_date, locale)}
                       </p>
                       {payment.method ? (
                         <p className="text-xs text-stone-400">{payment.method}</p>
-                      ) : null}
-                      {payment.external_reference ? (
-                        <p className="text-xs text-stone-400">{payment.external_reference}</p>
                       ) : null}
                     </div>
                     <div className="text-right">
@@ -235,7 +238,7 @@ export default function PaymentsPage() {
                         {formatCurrency(payment.amount)}
                       </p>
                       <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-black text-green-700">
-                        COMPLETED
+                        {getStatusText('COMPLETED')}
                       </span>
                     </div>
                   </div>
@@ -246,13 +249,13 @@ export default function PaymentsPage() {
 
           <section className="rounded-[32px] bg-white p-8 shadow-sm border-2 border-transparent hover:border-stone-900 transition-all duration-300">
             <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
-              Invoice History
+              {t('invoiceHistoryLabel')}
             </p>
-            <h2 className="text-2xl font-black text-stone-900 mb-6">All Invoices</h2>
+            <h2 className="text-2xl font-black text-stone-900 mb-6">{t('allInvoices')}</h2>
             {invoiceError ? (
-              <p className="mt-4 text-sm text-stone-400">Unable to load invoices</p>
+              <p className="mt-4 text-sm text-stone-400">{t('unableToLoadInvoices')}</p>
             ) : invoices.length === 0 ? (
-              <p className="mt-2 text-sm font-medium text-stone-400">No invoices yet</p>
+              <p className="mt-2 text-sm font-medium text-stone-400">{t('noInvoices')}</p>
             ) : (
               <div className="mt-4 divide-y divide-stone-100">
                 {invoices.map((invoice) => (
@@ -262,7 +265,7 @@ export default function PaymentsPage() {
                         {invoice.invoice_number}
                       </p>
                       <p className="text-xs text-stone-400">
-                        Issued {formatDateOnly(invoice.issue_date)}
+                        {t('issued')} {formatDateOnly(invoice.issue_date, locale)}
                       </p>
                     </div>
                     <div className="text-right">
@@ -280,7 +283,7 @@ export default function PaymentsPage() {
                             : 'bg-stone-100 text-stone-500'
                         }`}
                       >
-                        {invoice.status}
+                        {getStatusText(invoice.status)}
                       </span>
                     </div>
                   </div>

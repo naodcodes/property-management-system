@@ -73,11 +73,22 @@ export default function TenantShell({ children }: { children: React.ReactNode })
 
   function handleLocaleChange(newLocale: string) {
     if (newLocale === locale) return;
+    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+  
+    const currentPath = window.location.pathname;
+    let targetPath = '';
     if (newLocale === 'am') {
-      window.location.href = '/am' + pathname.replace('/am', '');
+      targetPath = currentPath.startsWith('/am') 
+        ? currentPath 
+        : `/am${currentPath === '/' ? '' : currentPath}`;
     } else {
-      window.location.href = pathname.replace('/am', '') || '/';
+      // If switching to English: Remove /am prefix and prevent double slashes
+      targetPath = currentPath.replace(/^\/am/, '') || '/';
     }
+  
+    // 3. Force a hard reload to the origin-absolute URL
+    // This bypasses the Next.js client-side cache which might be "remembering" the old locale
+    window.location.href = `${window.location.origin}${targetPath.replace(/\/+/g, '/')}`;
   }
 
   async function handleSignOut() {
