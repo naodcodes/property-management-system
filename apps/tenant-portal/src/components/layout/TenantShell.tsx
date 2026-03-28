@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Home,
   FileText,
@@ -28,10 +29,12 @@ type NavItem = {
 export default function TenantShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const locale = useLocale();
   const params = useParams<{ locale?: string }>();
   const localeParam = typeof params?.locale === 'string' ? params.locale : defaultLocale;
   const localePrefix = localeParam === defaultLocale ? '' : `/${localeParam}`;
   const supabase = useMemo(() => createClient(), []);
+  const t = useTranslations('Nav');
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [email, setEmail] = useState('tenant@betoch.app');
@@ -39,16 +42,20 @@ export default function TenantShell({ children }: { children: React.ReactNode })
   useEffect(() => {
     let isMounted = true;
     const loadUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (isMounted && user?.email) {
-        setEmail(user.email);
-      }
+      const { data } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      setEmail(data.session?.user?.email ?? '—');
     };
+
     void loadUser();
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setEmail(session?.user?.email ?? '—');
+    });
+
     return () => {
       isMounted = false;
+      authListener.subscription.unsubscribe();
     };
   }, [supabase]);
 
@@ -57,12 +64,21 @@ export default function TenantShell({ children }: { children: React.ReactNode })
   }
 
   const navItems: NavItem[] = [
-    { href: `${localePrefix}/dashboard`, label: 'Dashboard', icon: Home },
-    { href: `${localePrefix}/lease`, label: 'My Lease', icon: FileText },
-    { href: `${localePrefix}/payments`, label: 'Payments', icon: CreditCard },
-    { href: `${localePrefix}/maintenance`, label: 'Maintenance', icon: Wrench },
-    { href: `${localePrefix}/profile`, label: 'Profile', icon: User },
+    { href: `${localePrefix}/dashboard`, label: t('dashboard'), icon: Home },
+    { href: `${localePrefix}/lease`, label: t('lease'), icon: FileText },
+    { href: `${localePrefix}/payments`, label: t('payments'), icon: CreditCard },
+    { href: `${localePrefix}/maintenance`, label: t('maintenance'), icon: Wrench },
+    { href: `${localePrefix}/profile`, label: t('profile'), icon: User },
   ];
+
+  function handleLocaleChange(newLocale: string) {
+    if (newLocale === locale) return;
+    if (newLocale === 'am') {
+      window.location.href = '/am' + pathname.replace('/am', '');
+    } else {
+      window.location.href = pathname.replace('/am', '') || '/';
+    }
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -143,23 +159,39 @@ export default function TenantShell({ children }: { children: React.ReactNode })
             <Menu className="h-4 w-4" />
           </Button>
           <div className="hidden lg:block">
-            <p className="text-sm font-semibold text-stone-900">Tenant Portal</p>
+            <p className="text-sm font-semibold text-stone-900">{t('tenantPortal')}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-xs text-stone-500">Signed in as</p>
+              <p className="text-xs text-stone-500">{t('signedInAs')}</p>
               <p className="max-w-[220px] truncate text-sm font-medium text-stone-900">{email}</p>
             </div>
             <Badge className="bg-amber-700 text-amber-50 hover:bg-amber-700" variant="default">
               TENANT
             </Badge>
+            <div className="flex items-center gap-1 rounded-xl border border-stone-200 p-1">
+              {['en', 'am'].map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => handleLocaleChange(l)}
+                  className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                    locale === l
+                      ? 'bg-stone-900 text-white'
+                      : 'text-stone-500 hover:text-stone-900'
+                  }`}
+                >
+                  {l === 'en' ? 'EN' : 'አማ'}
+                </button>
+              ))}
+            </div>
             <Button
               variant="ghost"
               className="text-stone-600 hover:bg-amber-50 hover:text-amber-800"
               onClick={handleSignOut}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+              {t('signOut')}
             </Button>
           </div>
         </header>

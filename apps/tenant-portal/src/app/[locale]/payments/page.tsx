@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CreditCard } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { createClient } from '@/lib/supabase/client';
 
@@ -112,23 +113,37 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-1">
+          <CreditCard size={16} className="text-amber-700" />
+          <p className="text-amber-700 font-black text-xs uppercase tracking-widest">
+            Payments
+          </p>
+        </div>
+        <h1 className="text-4xl font-black tracking-tight text-stone-900">
+          Billing & Payments
+        </h1>
+        <p className="text-stone-400 font-medium text-sm mt-1">
+          Your invoices and payment history
+        </p>
+      </div>
       {loading ? (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="rounded-[32px] bg-white p-8 shadow-sm">
             <div className="h-20 rounded-xl bg-stone-100 animate-pulse" />
           </div>
-          <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="rounded-[32px] bg-white p-8 shadow-sm">
             <div className="h-24 rounded-xl bg-stone-100 animate-pulse" />
           </div>
-          <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="rounded-[32px] bg-white p-8 shadow-sm">
             <div className="h-24 rounded-xl bg-stone-100 animate-pulse" />
           </div>
         </div>
       ) : (
         <>
           <section
-            className={`rounded-2xl bg-white p-6 shadow-sm ${
-              outstandingInvoices.length > 0 ? 'border border-amber-200' : 'border border-stone-200'
+            className={`rounded-[32px] bg-white p-8 shadow-sm border-2 ${
+              outstandingInvoices.length > 0 ? 'border-amber-200' : 'border-transparent'
             }`}
           >
             {invoiceError ? (
@@ -136,18 +151,21 @@ export default function PaymentsPage() {
             ) : outstandingInvoices.length > 0 ? (
               <div className="space-y-4">
                 <div>
-                  <p className="text-3xl font-bold text-stone-900">
-                    {formatCurrency(outstandingTotal)} outstanding
+                  <p className="text-5xl font-black tracking-tight text-stone-900">
+                    {formatCurrency(outstandingTotal)}
+                  </p>
+                  <p className="text-stone-400 font-black text-[10px] uppercase tracking-widest mt-1">
+                    outstanding
                   </p>
                 </div>
                 <div className="space-y-3">
                   {outstandingInvoices.map((invoice) => (
                     <div
                       key={invoice.id}
-                      className="flex items-center justify-between rounded-xl border border-stone-100 bg-stone-50 px-4 py-3"
+                      className="flex items-center justify-between rounded-2xl border border-stone-100 bg-stone-50 px-5 py-4"
                     >
                       <div>
-                        <p className="text-sm font-medium text-stone-900">
+                        <p className="text-sm font-black text-stone-900">
                           {invoice.invoice_number}
                         </p>
                         <p className="text-xs text-stone-400">
@@ -159,7 +177,7 @@ export default function PaymentsPage() {
                           {formatCurrency(invoice.total_amount)}
                         </p>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          className={`rounded-full px-2 py-0.5 text-xs font-black ${
                             invoice.status === 'OVERDUE'
                               ? 'bg-red-100 text-red-700'
                               : 'bg-amber-100 text-amber-800'
@@ -171,7 +189,7 @@ export default function PaymentsPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-sm text-stone-500">
+                <p className="text-xs font-black uppercase tracking-widest text-stone-400 mt-4">
                   Contact your property manager to arrange payment
                 </p>
               </div>
@@ -179,27 +197,30 @@ export default function PaymentsPage() {
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-amber-500" />
                 <div>
-                  <p className="text-base font-semibold text-stone-900">
+                  <p className="text-base font-black text-stone-900">
                     All payments up to date
                   </p>
-                  <p className="text-sm text-stone-500">No outstanding balance</p>
+                  <p className="text-xs font-medium text-stone-400">No outstanding balance</p>
                 </div>
               </div>
             )}
           </section>
 
-          <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-stone-900">Payment History</h2>
+          <section className="rounded-[32px] bg-white p-8 shadow-sm border-2 border-transparent hover:border-stone-900 transition-all duration-300">
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
+              Payment History
+            </p>
+            <h2 className="text-2xl font-black text-stone-900 mb-6">Payment History</h2>
             {paymentError ? (
               <p className="mt-4 text-sm text-stone-400">Unable to load payments</p>
             ) : payments.length === 0 ? (
-              <p className="mt-4 text-sm text-stone-400">No payment records yet</p>
+              <p className="mt-2 text-sm font-medium text-stone-400">No payment records yet</p>
             ) : (
               <div className="mt-4 divide-y divide-stone-100">
                 {payments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between py-3">
                     <div>
-                      <p className="text-sm font-medium text-stone-900">
+                      <p className="text-sm font-black text-stone-900">
                         {formatTimestamp(payment.payment_date)}
                       </p>
                       {payment.method ? (
@@ -210,10 +231,10 @@ export default function PaymentsPage() {
                       ) : null}
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-stone-900">
+                      <p className="text-sm font-black text-stone-900">
                         {formatCurrency(payment.amount)}
                       </p>
-                      <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                      <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-black text-green-700">
                         COMPLETED
                       </span>
                     </div>
@@ -223,18 +244,21 @@ export default function PaymentsPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-stone-900">All Invoices</h2>
+          <section className="rounded-[32px] bg-white p-8 shadow-sm border-2 border-transparent hover:border-stone-900 transition-all duration-300">
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
+              Invoice History
+            </p>
+            <h2 className="text-2xl font-black text-stone-900 mb-6">All Invoices</h2>
             {invoiceError ? (
               <p className="mt-4 text-sm text-stone-400">Unable to load invoices</p>
             ) : invoices.length === 0 ? (
-              <p className="mt-4 text-sm text-stone-400">No invoices yet</p>
+              <p className="mt-2 text-sm font-medium text-stone-400">No invoices yet</p>
             ) : (
               <div className="mt-4 divide-y divide-stone-100">
                 {invoices.map((invoice) => (
                   <div key={invoice.id} className="flex items-center justify-between py-3">
                     <div>
-                      <p className="text-sm font-medium text-stone-900">
+                      <p className="text-sm font-black text-stone-900">
                         {invoice.invoice_number}
                       </p>
                       <p className="text-xs text-stone-400">
@@ -242,11 +266,11 @@ export default function PaymentsPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-stone-900">
+                      <p className="text-sm font-black text-stone-900">
                         {formatCurrency(invoice.total_amount)}
                       </p>
                       <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-black ${
                           invoice.status === 'PAID'
                             ? 'bg-green-100 text-green-700'
                             : invoice.status === 'OVERDUE'

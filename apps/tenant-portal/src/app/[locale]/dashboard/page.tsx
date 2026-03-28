@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { CreditCard, FileText, FolderOpen, Home, Wrench } from 'lucide-react';
+import { CreditCard, FileText, FolderOpen, LayoutDashboard, Wrench } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { createClient } from '@/lib/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 type Lease = {
   id: string;
@@ -50,7 +50,7 @@ const formatCurrency = (value?: number | null) => {
 
 export default function TenantDashboardPage() {
   const supabase = useMemo(() => createClient(), []);
-  const [displayName, setDisplayName] = useState('tenant@betoch.app');
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [lease, setLease] = useState<Lease | null>(null);
   const [nextInvoice, setNextInvoice] = useState<Invoice | null>(null);
   const [openTickets, setOpenTickets] = useState<number | null>(null);
@@ -71,7 +71,7 @@ export default function TenantDashboardPage() {
       } = await supabase.auth.getUser();
       if (!isMounted) return;
       const firstName = user?.user_metadata?.first_name as string | undefined;
-      setDisplayName(firstName?.trim() || user?.email || 'tenant@betoch.app');
+      setDisplayName(firstName?.trim() || user?.email || null);
     };
 
     const loadDashboard = async () => {
@@ -141,13 +141,6 @@ export default function TenantDashboardPage() {
   }, [supabase]);
 
   const leaseStatus = lease?.status?.toUpperCase() ?? null;
-  const leaseBadgeClass =
-    leaseStatus === 'ACTIVE'
-      ? 'bg-amber-100 text-amber-800'
-      : leaseStatus === 'EXPIRED'
-      ? 'bg-red-100 text-red-700'
-      : 'bg-yellow-100 text-yellow-700';
-
   const nextPaymentDue = nextInvoice?.due_date ? formatDate(nextInvoice.due_date) : null;
   const invoiceIsOverdue =
     nextInvoice?.status === 'OVERDUE' ||
@@ -155,15 +148,21 @@ export default function TenantDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-amber-200 bg-white p-6 shadow-sm">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-          <Home className="h-3.5 w-3.5" />
-          Tenant Overview
+      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <LayoutDashboard size={16} className="text-amber-700" />
+          <p className="text-amber-700 font-black text-xs uppercase tracking-widest">
+            Tenant Portal
+          </p>
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-stone-900">
-          Welcome home, {displayName}
-        </h1>
-        <p className="mt-2 text-sm text-stone-500">
+        {displayName ? (
+          <h1 className="text-4xl font-black tracking-tight text-stone-900 animate-in fade-in duration-300">
+            Welcome home, {displayName}
+          </h1>
+        ) : (
+          <div className="h-10 w-72 rounded-lg bg-stone-100 animate-pulse" />
+        )}
+        <p className="text-stone-400 font-medium text-sm mt-1">
           Here is a quick summary of your lease, payments, and requests.
         </p>
       </div>
@@ -171,203 +170,213 @@ export default function TenantDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, index) => (
-            <Card key={`skeleton-${index}`} className="border-stone-200 bg-white shadow-sm">
-              <CardContent className="min-h-[160px] p-5">
-                <div className="space-y-3">
-                  <div className="h-3 w-24 rounded bg-stone-100 animate-pulse" />
-                  <div className="h-5 w-32 rounded bg-stone-100 animate-pulse" />
-                  <div className="h-3 w-20 rounded bg-stone-100 animate-pulse" />
-                </div>
-              </CardContent>
-            </Card>
+            <div
+              key={`skeleton-${index}`}
+              className="rounded-[32px] bg-white p-8 shadow-sm"
+            >
+              <div className="space-y-3">
+                <div className="h-3 w-24 rounded bg-stone-100 animate-pulse" />
+                <div className="h-5 w-32 rounded bg-stone-100 animate-pulse" />
+                <div className="h-3 w-20 rounded bg-stone-100 animate-pulse" />
+              </div>
+            </div>
           ))
         ) : (
           <>
             {/* Lease Status */}
-            <Card className="border-stone-200 bg-white shadow-sm">
-              <CardContent className="flex min-h-[160px] flex-col justify-between p-5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wide text-stone-400">
-                    Lease
-                  </span>
-                  <FileText className="h-4 w-4 text-amber-500" />
+            <div className="group relative bg-white p-8 rounded-[32px] border-2 border-transparent hover:border-stone-900 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col min-h-[260px]">              <div className="flex justify-between items-start mb-6">
+                <div className="p-4 rounded-2xl bg-amber-100 text-amber-600 shadow-md shadow-amber-100">
+                  <FileText className="h-5 w-5" />
                 </div>
-                {errors.lease ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-stone-400">Unable to load</p>
-                  </div>
-                ) : lease ? (
-                  <div className="space-y-2">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${leaseBadgeClass}`}>
-                      {leaseStatus}
-                    </span>
-                    <p className="text-sm font-semibold text-stone-900 leading-snug">
-                      {lease.property_name ?? 'Property'}
-                      {lease.unit_code ? ` — Unit ${lease.unit_code}` : ''}
-                    </p>
-                    <p className="text-xs text-stone-400">
-                      {formatDate(lease.start_date)} → {formatDate(lease.end_date)}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-stone-400">No active lease</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+              <p className="text-stone-400 font-black text-[10px] uppercase tracking-widest leading-none mb-2">
+                LEASE
+              </p>
+              {errors.lease ? (
+                <>
+                  <h3 className="text-3xl font-black text-stone-900 mb-2">—</h3>
+                  <p className="text-stone-400 text-xs font-medium">Unable to load</p>
+                </>
+              ) : lease ? (
+                <>
+                  <h3 className="text-2xl font-black text-stone-900 mb-2">{leaseStatus}</h3>
+                  <p className="text-sm text-stone-900 font-semibold">
+                    {lease.property_name ?? 'Property'}
+                    {lease.unit_code ? ` — Unit ${lease.unit_code}` : ''}
+                  </p>
+                  <p className="text-stone-400 text-xs font-medium">
+                    {formatDate(lease.start_date)} → {formatDate(lease.end_date)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-5xl font-black text-stone-900 mb-2">—</h3>
+                  <p className="text-stone-400 text-xs font-medium">No active lease</p>
+                </>
+              )}
+              <div className="mt-auto pt-4">
+                <Link
+                  href="/lease"
+                  className="text-xs font-black text-amber-700 uppercase tracking-widest hover:text-amber-900"
+                >
+                  View Lease →
+                </Link>
+              </div>
+            </div>
 
             {/* Next Payment */}
-            <Card className="border-stone-200 bg-white shadow-sm">
-              <CardContent className="flex min-h-[160px] flex-col justify-between p-5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wide text-stone-400">
-                    Payments
-                  </span>
-                  <CreditCard className="h-4 w-4 text-amber-500" />
+            <div className="group relative bg-white p-8 rounded-[32px] border-2 border-transparent hover:border-stone-900 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col min-h-[260px]">              <div className="flex justify-between items-start mb-6">
+                <div className="p-4 rounded-2xl bg-amber-100 text-amber-600 shadow-md shadow-amber-100">
+                  <CreditCard className="h-5 w-5" />
                 </div>
-                {errors.invoices ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-stone-400">Unable to load</p>
+              </div>
+              <p className="text-stone-400 font-black text-[10px] uppercase tracking-widest leading-none mb-2">
+                PAYMENTS
+              </p>
+              {errors.invoices ? (
+                <>
+                  <h3 className="text-5xl font-black text-stone-900 mb-2">—</h3>
+                  <p className="text-stone-400 text-xs font-medium">Unable to load</p>
+                </>
+              ) : nextInvoice ? (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className={cn(
+                      'text-3xl font-black',
+                      invoiceIsOverdue ? 'text-red-600' : 'text-stone-900'
+                    )}>
+                      {formatCurrency(nextInvoice.total_amount)}
+                    </h3>
                   </div>
-                ) : nextInvoice ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {invoiceIsOverdue && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                          Overdue
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-sm font-semibold ${invoiceIsOverdue ? 'text-red-600' : 'text-stone-900'}`}>
-                      {formatCurrency(nextInvoice.total_amount)} due
-                    </p>
-                    {nextPaymentDue && (
-                      <p className="text-xs text-stone-400">Due {nextPaymentDue}</p>
-                    )}
-                    <Link href="/invoices" className="text-xs font-medium text-amber-700">
-                      View invoice →
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-amber-400 flex-shrink-0" />
-                      <p className="text-sm font-semibold text-stone-900">
-                        All payments up to date
-                      </p>
-                    </div>
-                    <p className="text-xs text-stone-400">
-                      No outstanding balance
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  {invoiceIsOverdue && (
+                    <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-black text-red-700 mb-1">
+                      OVERDUE
+                    </span>
+                  )}
+                  {nextPaymentDue ? (
+                    <p className="text-stone-400 text-xs font-medium">Due {nextPaymentDue}</p>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <h3 className="text-3xl font-black text-stone-900 mb-2">
+                    Up to date
+                  </h3>
+                  <p className="text-stone-400 text-xs font-medium">
+                    {lease?.start_date
+                      ? (() => {
+                          const day = parseInt(lease.start_date.split('-')[2] ?? '1', 10);
+                          const now = new Date();
+                          const next = new Date(now.getFullYear(), now.getMonth(), day);
+                          if (next <= now) {
+                            next.setMonth(next.getMonth() + 1);
+                          }
+                          return `Next due ${new Intl.DateTimeFormat('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          }).format(next)}`;
+                        })()
+                      : 'No outstanding balance'}
+                  </p>
+                </>
+              )}
+              <div className="mt-auto pt-4">
+                <Link
+                  href="/payments"
+                  className="text-xs font-black text-amber-700 uppercase tracking-widest hover:text-amber-900"
+                >
+                  View Payments →
+                </Link>
+              </div>
+            </div>
 
             {/* Maintenance */}
-            <Card className="border-stone-200 bg-white shadow-sm">
-              <CardContent className="flex min-h-[160px] flex-col justify-between p-5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wide text-stone-400">
-                    Maintenance
-                  </span>
-                  <Wrench className="h-4 w-4 text-amber-500" />
+            <div className="group relative bg-white p-8 rounded-[32px] border-2 border-transparent hover:border-stone-900 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col min-h-[260px]">              <div className="flex justify-between items-start mb-6">
+                <div className="p-4 rounded-2xl bg-amber-100 text-amber-600 shadow-md shadow-amber-100">
+                  <Wrench className="h-5 w-5" />
                 </div>
-                {errors.maintenance ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-stone-400">Unable to load</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {openTickets !== null && openTickets > 0 ? (
-                      <>
-                        <div className="flex items-center gap-1.5">
-                          <span className="h-2 w-2 rounded-full bg-amber-500 flex-shrink-0" />
-                          <p className="text-sm font-semibold text-stone-900">
-                            {openTickets} request{openTickets > 1 ? 's' : ''} in progress
-                          </p>
-                        </div>
-                        <p className="text-xs text-stone-400">
-                          We are working on it
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-1.5">
-                          <span className="h-2 w-2 rounded-full bg-amber-400 flex-shrink-0" />
-                          <p className="text-sm font-semibold text-stone-900">
-                            No open requests
-                          </p>
-                        </div>
-                      </>
-                    )}
-                    <Link href="/maintenance" className="text-xs font-medium text-amber-700">
-                      View requests →
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+              <p className="text-stone-400 font-black text-[10px] uppercase tracking-widest leading-none mb-2">
+                MAINTENANCE
+              </p>
+              {errors.maintenance ? (
+                <>
+                  <h3 className="text-5xl font-black text-stone-900 mb-2">—</h3>
+                  <p className="text-stone-400 text-xs font-medium">Unable to load</p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-3xl font-black text-stone-900 mb-2">
+                    {openTickets ?? 0}
+                  </h3>
+                  <p className="text-stone-400 text-xs font-medium">
+                    {openTickets && openTickets > 0 ? 'open requests' : 'all resolved'}
+                  </p>
+                </>
+              )}
+              <div className="mt-auto pt-4">
+                <Link
+                  href="/maintenance"
+                  className="text-xs font-black text-amber-700 uppercase tracking-widest hover:text-amber-900"
+                >
+                  View Requests →
+                </Link>
+              </div>
+            </div>
 
             {/* Documents */}
-            <Card className="border-stone-200 bg-white shadow-sm">
-              <CardContent className="flex min-h-[160px] flex-col justify-between p-5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wide text-stone-400">
-                    Documents
-                  </span>
-                  <FolderOpen className="h-4 w-4 text-amber-500" />
+            <div className="group relative bg-white p-8 rounded-[32px] border-2 border-transparent hover:border-stone-900 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col min-h-[260px]">              <div className="flex justify-between items-start mb-6">
+                <div className="p-4 rounded-2xl bg-amber-100 text-amber-600 shadow-md shadow-amber-100">
+                  <FolderOpen className="h-5 w-5" />
                 </div>
-                {errors.documents ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-stone-400">Unable to load</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {documentCount && documentCount > 0 ? (
-                      <>
-                        <p className="text-sm font-semibold text-stone-900">
-                          {documentCount} document{documentCount > 1 ? 's' : ''} available
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm font-semibold text-stone-900">
-                          No documents yet
-                        </p>
-                        <p className="text-xs text-stone-400">
-                          Files will appear here
-                        </p>
-                      </>
-                    )}
-                    <Link href="/lease" className="text-xs font-medium text-amber-700">
-                      View in My Lease →
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+              <p className="text-stone-400 font-black text-[10px] uppercase tracking-widest leading-none mb-2">
+                DOCUMENTS
+              </p>
+              {errors.documents ? (
+                <>
+                  <h3 className="text-5xl font-black text-stone-900 mb-2">—</h3>
+                  <p className="text-stone-400 text-xs font-medium">Unable to load</p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-3xl font-black text-stone-900 mb-2">
+                    {documentCount ?? 0}
+                  </h3>
+                  <p className="text-stone-400 text-xs font-medium">
+                    {documentCount && documentCount > 0 ? 'documents available' : 'no documents'}
+                  </p>
+                </>
+              )}
+              <div className="mt-auto pt-4">
+                <Link
+                  href="/lease"
+                  className="text-xs font-black text-amber-700 uppercase tracking-widest hover:text-amber-900"
+                >
+                  View in My Lease →
+                </Link>
+              </div>
+            </div>
           </>
         )}
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row">
         <Link
-          href="/invoices"
-          className="inline-flex items-center justify-center rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+          href="/payments"
+          className="bg-stone-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all shadow-sm active:scale-95"
         >
           Pay Rent
         </Link>
         <Link
           href="/maintenance"
-          className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700"
+          className="bg-white border-2 border-stone-900 text-stone-900 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-900 hover:text-white transition-all shadow-sm active:scale-95"
         >
           Report Issue
         </Link>
         <Link
           href="/lease"
-          className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700"
+          className="bg-white border-2 border-stone-900 text-stone-900 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-900 hover:text-white transition-all shadow-sm active:scale-95"
         >
           View Lease
         </Link>
