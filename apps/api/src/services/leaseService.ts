@@ -89,7 +89,13 @@ export async function getLeasesByTenant(tenantId: string) {
 export async function getActiveLease(tenantId: string) {
   const { data, error } = await supabaseAdmin
     .from('leases')
-    .select('*')
+    .select(
+      `
+      *,
+      units(unit_code),
+      properties(name, address_line_1, city)
+    `
+    )
     .eq('tenant_id', tenantId)
     .eq('status', LeaseStatus.ACTIVE)
     .order('start_date', { ascending: false })
@@ -99,7 +105,21 @@ export async function getActiveLease(tenantId: string) {
     throw createHttpError(500, error.message);
   }
 
-  return data?.[0] ?? null;
+  const lease = data?.[0] ?? null;
+  if (!lease) {
+    return null;
+  }
+
+  const unit = Array.isArray(lease.units) ? lease.units[0] : lease.units;
+  const property = Array.isArray(lease.properties) ? lease.properties[0] : lease.properties;
+  
+  return {
+    ...lease,
+    unit_code: unit?.unit_code ?? null,
+    property_name: property?.name ?? null,
+    property_address: property?.address_line_1 ?? null,
+    city: property?.city ?? null,
+  };
 }
 
 export async function updateLeaseStatus(leaseId: string, status: LeaseStatus) {

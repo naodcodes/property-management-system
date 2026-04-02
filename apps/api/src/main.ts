@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { authMiddleware } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { invoicesRouter } from './routes/invoices';
+import { invitationsRouter } from './routes/invitations';
 import { leasesRouter } from './routes/leases';
 import { maintenanceRouter } from './routes/maintenance';
 import { paymentsRouter } from './routes/payments';
@@ -16,7 +17,12 @@ import { uploadsRouter } from './routes/uploads';
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: ['http://localhost:3000', 'http://localhost:3002'],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
@@ -30,6 +36,7 @@ app.use('/api', authMiddleware, invoicesRouter);
 app.use('/api', authMiddleware, paymentsRouter);
 app.use('/api', authMiddleware, maintenanceRouter);
 app.use('/api', authMiddleware, uploadsRouter);
+app.use('/api', authMiddleware, invitationsRouter);
 
 app.use(errorHandler);
 

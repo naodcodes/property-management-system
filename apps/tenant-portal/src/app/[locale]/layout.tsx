@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { locales } from '@/i18n/config';
+import TenantShell from '@/components/layout/TenantShell';
 
 export default async function LocaleLayout({
   children,
@@ -9,5 +10,5 @@ export default async function LocaleLayout({
 }) {
   const locale = await getLocale();
   if (!locales.includes(locale)) notFound();
-  return <>{children}</>;
+  return <TenantShell>{children}</TenantShell>;
 }

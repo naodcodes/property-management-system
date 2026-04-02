@@ -98,6 +98,78 @@ router.get(
   }
 );
 
+router.get(
+  '/tenants/me',
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TENANT),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'Unauthorized', status: 401 });
+        return;
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('tenants')
+        .select(
+          `
+          id,
+          user_id,
+          phone,
+          emergency_contact_name,
+          emergency_contact_phone,
+          current_unit_id,
+          created_at,
+          updated_at,
+          units(
+            unit_code,
+            properties(
+              name,
+              address_line_1,
+              city
+            )
+          )
+        `
+        )
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        const err = new Error(error.message) as HttpError;
+        err.statusCode = 500;
+        throw err;
+      }
+
+      if (!data) {
+        res.status(404).json({ error: 'Tenant profile not found', status: 404 });
+        return;
+      }
+
+      const unit = Array.isArray(data.units) ? data.units[0] : data.units;
+      const property = Array.isArray(unit?.properties) ? unit?.properties[0] : unit?.properties;
+
+      res.json({
+        data: {
+          id: data.id,
+          user_id: data.user_id,
+          phone: data.phone,
+          emergency_contact_name: data.emergency_contact_name,
+          emergency_contact_phone: data.emergency_contact_phone,
+          current_unit_id: data.current_unit_id,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          unit_code: unit?.unit_code ?? null,
+          property_name: property?.name ?? null,
+          property_address: property?.address_line_1 ?? null,
+          city: property?.city ?? null,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.get('/tenants/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = parseOrThrow(idParamSchema, req.params);

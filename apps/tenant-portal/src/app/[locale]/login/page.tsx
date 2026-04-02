@@ -19,8 +19,18 @@ export default function TenantLoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleLanguageChange = (newLocale: string) => {
-    const newPath = pathname.replace(`/${locale}`, `/${newLocale}`);
-    router.push(newPath);
+    if (newLocale === locale) return;
+
+    // 1. Force the cookie so Middleware respects the change
+    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+
+    // 2. Determine the target path
+    // If switching to Amharic, we need /am/login
+    // If switching to English (default), we need just /login
+    const targetPath = newLocale === 'am' ? '/am/login' : '/login';
+
+    // 3. Hard redirect to bypass client-side routing state
+    window.location.href = `${window.location.origin}${targetPath}`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -48,7 +58,8 @@ export default function TenantLoginPage() {
       return;
     }
 
-    router.push(`/${locale}/dashboard`);
+    const dashboardPath = locale === 'en' ? '/dashboard' : `/${locale}/dashboard`;
+    router.push(dashboardPath);
   };
 
   return (

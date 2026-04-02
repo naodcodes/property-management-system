@@ -9,9 +9,9 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        // Changed destination port from 3001 to 4000 to match your API
+        // Backend API runs on port 3001
         source: '/api/:path*',
-        destination: 'http://127.0.0.1:4000/api/:path*', 
+        destination: 'http://127.0.0.1:3001/api/:path*',
       },
     ];
   },

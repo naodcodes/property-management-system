@@ -68,7 +68,8 @@ async function getTenantByUserId(userId: string) {
 const presignBodySchema = z.object({
   fileName: z.string().trim().min(1),
   mimeType: z.enum(allowedMimeTypes),
-  leaseId: z.string().uuid(),
+  leaseId: z.string().uuid().optional(),
+  invitationId: z.string().uuid().optional(),
 });
 
 const createLeaseDocumentSchema = z.object({
@@ -82,14 +83,78 @@ const idParamSchema = z.object({
   id: z.string().uuid('Invalid document id'),
 });
 
+const leaseDocumentsQuerySchema = z.object({
+  lease_id: z.string().uuid().optional(),
+});
+
 router.post('/uploads/presign', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = parseOrThrow(presignBodySchema, req.body);
+    if (!body.leaseId && !body.invitationId) {
+      throw validationError('leaseId or invitationId is required');
+    }
     const timestamp = Date.now();
     const sanitizedName = sanitizeFileName(body.fileName);
-    const storagePath = `leases/${body.leaseId}/${timestamp}-${sanitizedName}`;
+    const storagePath = body.leaseId
+      ? `leases/${body.leaseId}/${timestamp}-${sanitizedName}`
+      : `invitations/${body.invitationId}/${timestamp}-${sanitizedName}`;
     const upload = await getUploadUrl(storagePath, body.mimeType);
     res.json(upload);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/lease-documents', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user;
+    if (!user?.id || !user.role) {
+      res.status(401).json({ error: 'Unauthorized', status: 401 });
+      return;
+    }
+
+    if (user.role === UserRole.TENANT) {
+      const tenant = await getTenantByUserId(user.id);
+      const { data: documents, error } = await supabaseAdmin
+        .from('lease_documents')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        const dbError = new Error(error.message) as HttpError;
+        dbError.statusCode = 500;
+        throw dbError;
+      }
+
+      res.json({ data: documents ?? [] });
+      return;
+    }
+
+    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+      const { lease_id } = parseOrThrow(leaseDocumentsQuerySchema, req.query);
+      if (!lease_id) {
+        res.status(400).json({ error: 'lease_id is required', status: 400 });
+        return;
+      }
+
+      const { data: documents, error } = await supabaseAdmin
+        .from('lease_documents')
+        .select('*')
+        .eq('lease_id', lease_id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        const dbError = new Error(error.message) as HttpError;
+        dbError.statusCode = 500;
+        throw dbError;
+      }
+
+      res.json({ data: documents ?? [] });
+      return;
+    }
+
+    throw forbiddenError();
   } catch (error) {
     next(error);
   }

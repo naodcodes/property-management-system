@@ -95,6 +95,42 @@ router.post(
   }
 );
 
+router.get(
+  '/leases/mine',
+  requireRole(UserRole.TENANT),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'Unauthorized', status: 401 });
+        return;
+      }
+
+      const { data: tenant, error: tenantError } = await supabaseAdmin
+        .from('tenants')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (tenantError) {
+        const err = new Error(tenantError.message) as HttpError;
+        err.statusCode = 500;
+        throw err;
+      }
+
+      if (!tenant) {
+        res.status(404).json({ error: 'Tenant not found', status: 404 });
+        return;
+      }
+
+      const activeLease = await getActiveLease(tenant.id);
+      res.json({ data: activeLease ?? null });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.get('/tenants/:tenantId/leases', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = parseOrThrow(tenantIdParamSchema, req.params);

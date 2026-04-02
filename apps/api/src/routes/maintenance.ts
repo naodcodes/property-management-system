@@ -146,11 +146,28 @@ router.post(
 
 router.get(
   '/maintenance',
-  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const filters = parseOrThrow(ticketFilterSchema, req.query);
-      const tickets = await getAllTickets(filters);
+      const user = req.user;
+      if (!user?.id || !user.role) {
+        res.status(401).json({ error: 'Unauthorized', status: 401 });
+        return;
+      }
+
+      const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+      if (isAdmin) {
+        const filters = parseOrThrow(ticketFilterSchema, req.query);
+        const tickets = await getAllTickets(filters);
+        res.json({ data: tickets });
+        return;
+      }
+
+      if (user.role !== UserRole.TENANT) {
+        throw forbiddenError();
+      }
+
+      const tenant = await getTenantByUserId(user.id);
+      const tickets = await getTenantTickets(tenant.id);
       res.json({ data: tickets });
     } catch (error) {
       next(error);
