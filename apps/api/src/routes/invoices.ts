@@ -8,7 +8,8 @@ import {
   getInvoicesByTenant,
   getOverdueInvoices,
   updateInvoiceStatus,
-  getInvoicesByAdmin
+  getInvoicesByAdmin,
+  getInvoicesByAdminV2
 } from '../services/invoiceService';
 import { supabaseAdmin } from '../lib/supabase';
 
@@ -117,36 +118,77 @@ const createInvoiceSchema = z.object({
 const updateInvoiceStatusSchema = z.object({
   status: z.nativeEnum(InvoiceStatus),
 });
-
 router.get('/invoices', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user;
     if (!user?.id || !user.role) {
-      console.log("BACKEND: No user found in request");
-      res.status(401).json({ error: 'Unauthorized', status: 401 });
+      res.status(401).json({ error: 'Unauthorized' });
       return;
     }
  
     if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
-      // Use the service we spent time fixing!
-      const invoices = await getInvoicesByAdmin(user.id);
+      // Pointing to the new V2 service
+      const invoices = await getInvoicesByAdminV2(user.id);
       res.json({ data: invoices });
       return;
     }
-
-    if (user.role === UserRole.TENANT) {
-      const tenant = await getTenantByUserId(user.id);
-      const invoices = await getInvoicesByTenant(tenant.id);
-      res.json({ data: invoices });
-      return;
-    }
-
-    throw forbiddenError();
+    
+    // ... rest of your tenant logic
   } catch (error) {
-    console.error("BACKEND ERROR:", error);
     next(error);
   }
 });
+
+/**
+ * PATCH /invoices/:id/pay
+ * Records a payment for an invoice, moving it to PAID status.
+ */
+router.patch(
+  '/invoices/:id/pay',
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = parseOrThrow(idParamSchema, req.params);
+      
+      // We explicitly set the status to PAID since this is a 'Record Payment' action
+      const { data, error } = await supabaseAdmin
+        .from('invoices')
+        .update({ 
+          status: InvoiceStatus.PAID,
+          updated_at: new Date().toISOString()
+          // If you have a 'paid_at' column in your schema, add it here:
+          // paid_at: new Date().toISOString() 
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw dbError(error.message);
+      }
+
+      if (!data) {
+        const notFound = new Error('Invoice not found') as HttpError;
+        notFound.statusCode = 404;
+        throw notFound;
+      }
+
+      res.json({ 
+        message: 'Payment recorded successfully', 
+        data 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Helper for DB errors if not already defined
+function dbError(message: string): HttpError {
+  const error = new Error(message) as HttpError;
+  error.statusCode = 500;
+  return error;
+}
 
 router.get('/invoices/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {

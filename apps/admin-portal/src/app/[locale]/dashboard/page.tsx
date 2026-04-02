@@ -108,7 +108,7 @@ export default function AdminDashboard() {
             value={stats.lateCount} 
             icon={<DollarSign />} 
             color="rose" 
-            href="/admin/payments"
+            href="/payments"
             description={stats.lateCount > 0 ? "Urgent collection required" : "All accounts up to date"}
           />
 
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
             value={stats.openMaintenance} 
             icon={<Wrench />} 
             color="indigo" 
-            href="/admin/maintenance"
+            href="/maintenance"
             description="Unresolved requests"
           />
         </section>
