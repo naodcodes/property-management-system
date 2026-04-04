@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '../../../lib/supabase/client';
-import { usePathname, useRouter } from '@/src/lib/navigation'; 
+import { createClient } from '@/lib/supabase/client';
+import { usePathname, useRouter } from '../../../lib/navigation'; 
 import { useTranslations, useLocale } from 'next-intl';
 import { Building2, Lock, Mail, Loader2, Home, Languages } from 'lucide-react';
 

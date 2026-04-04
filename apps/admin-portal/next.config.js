@@ -11,7 +11,7 @@ const nextConfig = {
       {
         // Backend API runs on port 3001
         source: '/api/:path*',
-        destination: 'http://127.0.0.1:3001/api/:path*',
+        destination: 'http://127.0.0.1:4000/api/:path*',
       },
     ];
   },
