@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { createClient } from '../../../lib/supabase/client';
-import { usePathname, useRouter } from 'next/navigation'; // Standard next navigation
-import { Building2, Lock, Mail, Loader2, Home, Languages } from 'lucide-react';
+import { usePathname, useRouter } from '@/src/lib/navigation'; 
 import { useTranslations, useLocale } from 'next-intl';
+import { Building2, Lock, Mail, Loader2, Home, Languages } from 'lucide-react';
 
 export default function LoginPage() {
   const t = useTranslations('Login');
@@ -18,11 +18,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Language Switcher Logic
   const handleLanguageChange = (newLocale: string) => {
-    // Replaces the current locale segment in the URL
-    const newPath = pathname.replace(`/${locale}`, `/${newLocale}`);
-    router.push(newPath);
+    // next-intl's useRouter.push takes the locale as an option
+    router.push(pathname, { locale: newLocale });
+    router.refresh();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
